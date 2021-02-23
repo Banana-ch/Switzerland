@@ -1461,34 +1461,46 @@ function validateParams(userParamObj) {
    * - return FALSE when parameters are not correct, the parameters settings window remains
    *   open, so user can correct errors.
    */
-  return validateParamsData(userParamObj);
-}
-
-function validateParamsData(userParamObj) {
-
-  /**
-   * Check some data entered in the parameters.
-   * When there is something wrong, show a red message near the parameter's name.
-   * - Invoice details columns names: check if the entered column name exists.
-   * - The sum of the column weights: the sum must be 100.
-   */
 
   if (!userParamObj || !userParamObj.data) {
     return false;
   }
 
-  var texts = setInvoiceTexts(lang);
-  var lengthDetailsColumns = '';
-  var lengthDetailsTexts = '';
-  var langCodes = [];
-  var langCodesError = [];
+  validateParams_setDefaultValues(userParamObj);
+  
   var isValid = true;
+  for (var i = 0; i < userParamObj.data.length; i++) {
+    var key = '';
+    var value = '';
+    var userParamObjData = userParamObj.data[i];
+    if (userParamObjData.name) {
+      key = userParamObjData.name;
+    }
+    if (userParamObjData.value) {
+      value = userParamObjData.value;
+    }
+    
+    if (key === 'details_columns') {
+      if (!validateParams_detailsColumns(userParamObjData)) {
+        isValid = false;
+      }
+    }
+    if (key === 'details_columns_widths') {
+      if (!validateParams_detailsColumnsWidths(userParamObjData)) {
+        isValid = false;
+      }
+    }
+  }
+  return isValid;
+}
 
-
+function validateParams_setDefaultValues(userParamObj) {
   /**
    * Verify parameters when settings dialog remains open.
-   * Set the default values to parameters when empty.
+   * Set the default values to parameters when empty and dialog remains open.
    */
+  var langCodes = [];
+
   for (var i = 0; i < userParamObj.data.length; i++) {
     var key = '';
     var value = '';
@@ -1607,100 +1619,85 @@ function validateParamsData(userParamObj) {
       userParamObj.data[i].value = '10';
     }
   }
+}
 
-
+function validateParams_detailsColumns(userParamObjData) {
   /**
-   * Check and validate some parameters.
-   * When there is something wrong, the settings dialog remains open and a red message shows the error type.
+   * Checks that XML column names entered exist.
+   * When columns don't exist, shows a message with a list of wrong column names.
    */
-  for (var i = 0; i < userParamObj.data.length; i++) {
-    
-    var key = '';
-    var value = '';
+  var isValid = true;
+  var texts = setInvoiceTexts(lang);
 
-    if (userParamObj.data[i].name) {
-      key = userParamObj.data[i].name;
-    }
-    if (userParamObj.data[i].value) {
-      value = userParamObj.data[i].value;
-    }
+  var defaultColumns = ['Description','Quantity','ReferenceUnit','UnitPrice','Amount'];
+  var customColumns = [];
 
-
-    /**
-     * Checks that XML column names entered exist.
-     * When columns don't exist, shows a message with a list of wrong column names.
-     */
-    if (key === 'details_columns') {
-
-      var defaultColumns = ['Description','Quantity','ReferenceUnit','UnitPrice','Amount'];
-      var customColumns = [];
-
-      if (Banana.document.table("Transactions")) {
-        var tabTransaction = Banana.document.table("Transactions");
-        var tColumnNames = tabTransaction.columnNames;
-        for (var k = 0; k < tColumnNames.length; k++) {
-          if (tColumnNames[k] !== 'Description' && tColumnNames[k] !== 'Quantity' && tColumnNames[k] !== 'ReferenceUnit' && tColumnNames[k] !== 'UnitPrice' && tColumnNames[k] !== 'Amount') {
-            customColumns.push("T."+tColumnNames[k]);
-          }
-        }
-      }
-
-      var validColumns = defaultColumns.concat(customColumns); //default + custom columns
-      var wrongColumns = [];
-      var userColumns = value.split(';');
-      for (var j = 0; j < userColumns.length; j++) {
-        //if (userColumns[j].substring(0,2) !== 'T.') {
-          if (!validColumns.includes(userColumns[j])) {
-            wrongColumns.push(userColumns[j]);
-          }
-        //}
-      }
-      if (wrongColumns.length > 0) {
-        userParamObj.data[i].errorId = 'ID_ERR_COLUMNS_NAMES';
-        userParamObj.data[i].errorMsg = '@error ' + texts.error2_msg + ': ' + wrongColumns;
-        isValid = false;
-      }
-      else {
-        if (userParamObj.data[i].errorId) {
-          delete userParamObj.data[i].errorId;
-        }
-        if (userParamObj.data[i].errorMsg) {
-          delete userParamObj.data[i].errorMsg;
-        }
+  if (Banana.document.table("Transactions")) {
+    var tabTransaction = Banana.document.table("Transactions");
+    var tColumnNames = tabTransaction.columnNames;
+    for (var k = 0; k < tColumnNames.length; k++) {
+      if (tColumnNames[k] !== 'Description' && tColumnNames[k] !== 'Quantity' && tColumnNames[k] !== 'ReferenceUnit' && tColumnNames[k] !== 'UnitPrice' && tColumnNames[k] !== 'Amount') {
+        customColumns.push("T."+tColumnNames[k]);
       }
     }
+  }
 
-
-    /**
-     * Checks that the total sum of the weights is 100%.
-     * When it's not, shows an error message with the acutal total sum.
-     */
-    if (key === 'details_columns_widths') {
-      var strWidths = value.replace(/%/g,'');
-      var widths = strWidths.split(';');
-      var widthSum = 0;
-      for (var j = 0; j < widths.length; j++) {
-        widthSum = Banana.SDecimal.add(widthSum, widths[j]);
-      }
-      if (widthSum != 100) {
-        userParamObj.data[i].errorId = 'ID_ERR_COLUMNS_WIDTH';
-        userParamObj.data[i].errorMsg = '@error ' + texts.error3_msg + ': ' + widthSum + '%';
-        isValid = false;
-      }
-      else {
-        if (userParamObj.data[i].errorId) {
-          delete userParamObj.data[i].errorId;
-        }
-        if (userParamObj.data[i].errorMsg) {
-          delete userParamObj.data[i].errorMsg;
-        }
-      }
+  var validColumns = defaultColumns.concat(customColumns); //default + custom columns
+  var wrongColumns = [];
+  var userColumns = userParamObjData.value.split(';');
+  for (var j = 0; j < userColumns.length; j++) {
+    if (!validColumns.includes(userColumns[j])) {
+      wrongColumns.push(userColumns[j]);
     }
-
+  }
+  if (wrongColumns.length > 0) {
+    userParamObjData.errorId = 'ID_ERR_COLUMNS_NAMES';
+    userParamObjData.errorMsg = texts.error2_msg + ': ' + wrongColumns;
+    isValid = false;
+  }
+  else {
+    if (userParamObjData.errorId) {
+      delete userParamObjData.errorId;
+    }
+    if (userParamObjData.errorMsg) {
+      delete userParamObjData.errorMsg;
+    }
   }
 
   return isValid;
 }
+
+function validateParams_detailsColumnsWidths(userParamObjData) {
+  /**
+   * Checks that the total sum of the weights is 100%.
+   * When it's not, shows an error message with the acutal total sum.
+   */
+  var isValid = true;
+  var texts = setInvoiceTexts(lang);
+
+  var strWidths = userParamObjData.value.replace(/%/g,'');
+  var widths = strWidths.split(';');
+  var widthSum = 0;
+  for (var j = 0; j < widths.length; j++) {
+    widthSum = Banana.SDecimal.add(widthSum, widths[j]);
+  }
+  if (widthSum != 100) {
+    userParamObjData.errorId = 'ID_ERR_COLUMNS_WIDTH';
+    userParamObjData.errorMsg = texts.error3_msg + ' ' + widthSum + '%';
+    isValid = false;
+  }
+  else {
+    if (userParamObjData.errorId) {
+      delete userParamObjData.errorId;
+    }
+    if (userParamObjData.errorMsg) {
+      delete userParamObjData.errorMsg;
+    }
+  }
+
+  return isValid;
+}
+
 
 
 //====================================================================//
@@ -3712,10 +3709,8 @@ function setInvoiceTexts(language) {
     texts.param_tooltip_javascript_filename = "Inserisci il nome del file JavaScript (.js) della colonna 'ID' tabella Documenti (ad es. File.js)";
     texts.error1 = "I nomi delle colonne non corrispondono ai testi da stampare. Verificare impostazioni fattura.";
     texts.it_error1_msg = "Nomi testi e colonne non corrispondono";
-
-    texts.error2_msg = "Nomi XML colonne";
-    texts.error3_msg = "Somma larghezze colonne";
-    
+    texts.error2_msg = "Nomi colonne XML non esistenti";
+    texts.error3_msg = "Somma larghezza colonne massima 100%, attuale:";
     texts.offer = "Offerta";
     texts.it_param_text_info_offer_number = "Numero offerta";
     texts.param_tooltip_text_info_offer_number = "Inserisci un testo per sostituire quello predefinito";
@@ -3874,10 +3869,8 @@ function setInvoiceTexts(language) {
     texts.param_tooltip_javascript_filename = "Javaskript-Dateiname der 'ID'-Spalte Dokumente-Tabelle eingeben (z.B. Filejs)";
     texts.error1 = "Die Spaltennamen stimmen nicht mit den zu druckenden Texten überein. Prüfen Sie die Rechnungseinstellungen.";
     texts.de_error1_msg = "Die Namen von Text und Spalten stimmen nicht überein.";
-
-    texts.error2_msg = "XML-Spaltennamen";
-    texts.error3_msg = "Summe der Spaltenbreiten";
-    
+    texts.error2_msg = "Nicht vorhandene XML-Spaltennamen";
+    texts.error3_msg = "Maximale Spaltenbreite 100%, aktuell:";
     texts.offer = "Offerte";
     texts.de_param_text_info_offer_number = "Offerte Nr.";
     texts.param_tooltip_text_info_offer_number = "Text eingeben, um Standardtext zu ersetzen";
@@ -4036,10 +4029,8 @@ function setInvoiceTexts(language) {
     texts.param_tooltip_javascript_filename = "Insérer le nom du fichier JavaScript (.js) de la colonne 'ID' du tableau Documents (p. ex. File.js)";    
     texts.error1 = "Les noms des colonnes ne correspondent pas aux textes à imprimer. Vérifiez les paramètres de la facture.";
     texts.fr_error1_msg = "Le texte et les noms des colonnes ne correspondent pas";
-
-    texts.error2_msg = "Noms XML des colonnes";
-    texts.error3_msg = "Somme largeurs des colonnes";
-
+    texts.error2_msg = "Noms de colonnes XML inexistants";
+    texts.error3_msg = "Largeur maximale des colonnes 100%, actuelle:";
     texts.offer = "Offre";
     texts.fr_param_text_info_offer_number = "Numéro offre";
     texts.param_tooltip_text_info_offer_number = "Insérez un texte pour remplacer le texte par défaut";
@@ -4198,10 +4189,8 @@ function setInvoiceTexts(language) {
     texts.param_tooltip_javascript_filename = "Enter name of the javascript file taken from the 'ID' column of the table 'Documents' (i.e. file.js)";  
     texts.error1 = "Column names do not match with the text to print. Check invoice settings.";
     texts.en_error1_msg = "Text names and columns do not match";
-
-    texts.error2_msg = "XML columns names";
-    texts.error3_msg = "Sum column widths";
-
+    texts.error2_msg = "Non existing XML column names";
+    texts.error3_msg = "Maximum column width sum 100%, current:";
     texts.offer = "Estimate";
     texts.en_param_text_info_offer_number = "Estimate number";
     texts.param_tooltip_text_info_offer_number = "Enter text to replace the default";
