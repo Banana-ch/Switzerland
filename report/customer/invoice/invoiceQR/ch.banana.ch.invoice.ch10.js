@@ -1,4 +1,4 @@
-// Copyright [2020] [Banana.ch SA - Lugano Switzerland]
+// Copyright [2021] [Banana.ch SA - Lugano Switzerland]
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 //
 // @id = ch.banana.ch.invoice.ch10
 // @api = 1.0
-// @pubdate = 2021-02-08
+// @pubdate = 2021-02-23
 // @publisher = Banana.ch SA
 // @description = [CH10] Layout with Swiss QR Code
 // @description.it = [CH10] Layout with Swiss QR Code
@@ -1453,6 +1453,254 @@ function verifyParam(userParam) {
   return userParam;
 }
 
+function validateParams(userParamObj) {
+  /**
+   * Available from version 10.0.6. For previous versions the function does nothing.
+   * Function used to validate the parameters.
+   * - return TRUE when parameters are correct, then close the parameters settings window.
+   * - return FALSE when parameters are not correct, the parameters settings window remains
+   *   open, so user can correct errors.
+   */
+  return validateParamsData(userParamObj);
+}
+
+function validateParamsData(userParamObj) {
+
+  /**
+   * Check some data entered in the parameters.
+   * When there is something wrong, show a red message near the parameter's name.
+   * - Invoice details columns names: check if the entered column name exists.
+   * - The sum of the column weights: the sum must be 100.
+   */
+
+  if (!userParamObj || !userParamObj.data) {
+    return false;
+  }
+
+  var texts = setInvoiceTexts(lang);
+  var lengthDetailsColumns = '';
+  var lengthDetailsTexts = '';
+  var langCodes = [];
+  var langCodesError = [];
+  var isValid = true;
+
+
+  /**
+   * Verify parameters when settings dialog remains open.
+   * Set the default values to parameters when empty.
+   */
+  for (var i = 0; i < userParamObj.data.length; i++) {
+    var key = '';
+    var value = '';
+    if (userParamObj.data[i].name) {
+      key = userParamObj.data[i].name;
+    }
+    if (userParamObj.data[i].value) {
+      value = userParamObj.data[i].value;
+    }
+
+    if (key === 'logo_name' && !value) {
+      userParamObj.data[i].value = 'Logo';
+    }
+    if (key === 'address_composition' && !value) {
+      userParamObj.data[i].value = '<OrganisationName>\n<NamePrefix>\n<FirstName> <FamilyName>\n<Street> <AddressExtra>\n<POBox>\n<PostalCode> <Locality>';
+    }
+    if (key === 'address_position_dX' && !value) {
+      userParamObj.data[i].value = '0';
+    }
+    if (key === 'address_position_dY' && !value) {
+      userParamObj.data[i].value = '0';
+    }
+    if (key === 'details_columns' && !value) {
+      userParamObj.data[i].value = 'Description;Quantity;ReferenceUnit;UnitPrice;Amount';
+    }
+    if (key === 'details_columns_widths' && !value) {
+      userParamObj.data[i].value = '45%;10%;10%;20%;15%';
+    }
+    if (key === 'details_columns_titles_alignment' && !value) {
+      userParamObj.data[i].value = 'left;right;center;right;right';
+    }
+    if (key === 'details_columns_alignment' && !value) {
+      userParamObj.data[i].value = 'left;right;center;right;right';
+    }
+    if (key === 'languages') {
+      if(!value) {
+        userParamObj.data[i].value = 'de;en;fr;it';
+      }
+      langCodes = userParamObj.data[i].value.split(';');
+    }
+
+    for (var j = 0; j < langCodes.length; j++) {
+      var langTexts = setInvoiceTexts(langCodes[j]);
+          
+      if (key ===  langCodes[j]+'_text_info_invoice_number' && !value) {
+        userParamObj.data[i].value = langTexts.invoice;
+      }
+      if (key ===  langCodes[j]+'_text_info_date' && !value) {
+        userParamObj.data[i].value = langTexts.date;
+      }
+      if (key ===  langCodes[j]+'_text_info_customer' && !value) {
+        userParamObj.data[i].value = langTexts.customer;
+      }
+      if (key ===  langCodes[j]+'_text_info_customer_vat_number' && !value) {
+        userParamObj.data[i].value = langTexts.vat_number;
+      }
+      if (key ===  langCodes[j]+'_text_info_customer_fiscal_number' && !value) {
+        userParamObj.data[i].value = langTexts.fiscal_number;
+      }
+      if (key ===  langCodes[j]+'_text_info_due_date' && !value) {
+        userParamObj.data[i].value = langTexts.payment_terms_label;
+      }
+      if (key ===  langCodes[j]+'_text_info_page' && !value) {
+        userParamObj.data[i].value = langTexts.page;
+      }
+      if (key ===  langCodes[j]+'_text_shipping_address' && !value) {
+        userParamObj.data[i].value = langTexts.shipping_address;
+      }
+      if (key ===  langCodes[j]+'_title_doctype_10' && !value) {
+        userParamObj.data[i].value = langTexts.invoice + " <DocInvoice>";
+      }
+      if (key ===  langCodes[j]+'_title_doctype_12' && !value) {
+        userParamObj.data[i].value = langTexts.credit_note + " <DocInvoice>";
+      }
+      if (key ===  langCodes[j]+'_text_details_columns' && !value) {
+        userParamObj.data[i].value = langTexts.description+";"+langTexts.quantity+";"+langTexts.reference_unit+";"+langTexts.unit_price+";"+langTexts.amount;
+      }
+      if (key ===  langCodes[j]+'_text_total' && !value) {
+        userParamObj.data[i].value = langTexts.total;
+      }
+      if (key ===  langCodes[j]+'_footer_left' && !value) {
+        userParamObj.data[i].value = langTexts.invoice;
+      }
+      if (key ===  langCodes[j]+'_footer_right' && !value) {
+        userParamObj.data[i].value = langTexts.page+' <'+langTexts.page+'>';
+      }
+      if (key ===  langCodes[j]+'_text_info_offer_number' && !value) {
+        userParamObj.data[i].value = langTexts.offer;
+      }
+      if (key ===  langCodes[j]+'_text_info_date_offer' && !value) {
+        userParamObj.data[i].value = langTexts.date;
+      }
+      if (key ===  langCodes[j]+'_text_info_validity_date_offer' && !value) {
+        userParamObj.data[i].value = langTexts.validity_terms_label;
+      }
+      if (key ===  langCodes[j]+'_title_doctype_17' && !value) {
+        userParamObj.data[i].value = langTexts.offer + " <DocInvoice>";
+      }
+    }
+    if (key === 'text_color' && !value) {
+      userParamObj.data[i].value = '#000000';
+    }
+    if (key === 'background_color_details_header' && !value) {
+      userParamObj.data[i].value = '#337AB7';
+    }
+    if (key === 'text_color_details_header' && !value) {
+      userParamObj.data[i].value = '#FFFFFF';
+    }
+    if (key === 'background_color_alternate_lines' && !value) {
+      userParamObj.data[i].value = '#F0F8FF';
+    }
+    if (key === 'font_family' && !value) {
+      userParamObj.data[i].value = 'Helvetica';
+    }
+    if (key === 'font_size' && !value) {
+      userParamObj.data[i].value = '10';
+    }
+  }
+
+
+  /**
+   * Check and validate some parameters.
+   * When there is something wrong, the settings dialog remains open and a red message shows the error type.
+   */
+  for (var i = 0; i < userParamObj.data.length; i++) {
+    
+    var key = '';
+    var value = '';
+
+    if (userParamObj.data[i].name) {
+      key = userParamObj.data[i].name;
+    }
+    if (userParamObj.data[i].value) {
+      value = userParamObj.data[i].value;
+    }
+
+
+    /**
+     * Checks that XML column names entered exist.
+     * When columns don't exist, shows a message with a list of wrong column names.
+     */
+    if (key === 'details_columns') {
+
+      var defaultColumns = ['Description','Quantity','ReferenceUnit','UnitPrice','Amount'];
+      var customColumns = [];
+
+      if (Banana.document.table("Transactions")) {
+        var tabTransaction = Banana.document.table("Transactions");
+        var tColumnNames = tabTransaction.columnNames;
+        for (var k = 0; k < tColumnNames.length; k++) {
+          if (tColumnNames[k] !== 'Description' && tColumnNames[k] !== 'Quantity' && tColumnNames[k] !== 'ReferenceUnit' && tColumnNames[k] !== 'UnitPrice' && tColumnNames[k] !== 'Amount') {
+            customColumns.push("T."+tColumnNames[k]);
+          }
+        }
+      }
+
+      var validColumns = defaultColumns.concat(customColumns); //default + custom columns
+      var wrongColumns = [];
+      var userColumns = value.split(';');
+      for (var j = 0; j < userColumns.length; j++) {
+        //if (userColumns[j].substring(0,2) !== 'T.') {
+          if (!validColumns.includes(userColumns[j])) {
+            wrongColumns.push(userColumns[j]);
+          }
+        //}
+      }
+      if (wrongColumns.length > 0) {
+        userParamObj.data[i].errorId = 'ID_ERR_COLUMNS_NAMES';
+        userParamObj.data[i].errorMsg = '@error ' + texts.error2_msg + ': ' + wrongColumns;
+        isValid = false;
+      }
+      else {
+        if (userParamObj.data[i].errorId) {
+          delete userParamObj.data[i].errorId;
+        }
+        if (userParamObj.data[i].errorMsg) {
+          delete userParamObj.data[i].errorMsg;
+        }
+      }
+    }
+
+
+    /**
+     * Checks that the total sum of the weights is 100%.
+     * When it's not, shows an error message with the acutal total sum.
+     */
+    if (key === 'details_columns_widths') {
+      var strWidths = value.replace(/%/g,'');
+      var widths = strWidths.split(';');
+      var widthSum = 0;
+      for (var j = 0; j < widths.length; j++) {
+        widthSum = Banana.SDecimal.add(widthSum, widths[j]);
+      }
+      if (widthSum != 100) {
+        userParamObj.data[i].errorId = 'ID_ERR_COLUMNS_WIDTH';
+        userParamObj.data[i].errorMsg = '@error ' + texts.error3_msg + ': ' + widthSum + '%';
+        isValid = false;
+      }
+      else {
+        if (userParamObj.data[i].errorId) {
+          delete userParamObj.data[i].errorId;
+        }
+        if (userParamObj.data[i].errorMsg) {
+          delete userParamObj.data[i].errorMsg;
+        }
+      }
+    }
+
+  }
+
+  return isValid;
+}
 
 
 //====================================================================//
@@ -3464,6 +3712,10 @@ function setInvoiceTexts(language) {
     texts.param_tooltip_javascript_filename = "Inserisci il nome del file JavaScript (.js) della colonna 'ID' tabella Documenti (ad es. File.js)";
     texts.error1 = "I nomi delle colonne non corrispondono ai testi da stampare. Verificare impostazioni fattura.";
     texts.it_error1_msg = "Nomi testi e colonne non corrispondono";
+
+    texts.error2_msg = "Nomi XML colonne";
+    texts.error3_msg = "Somma larghezze colonne";
+    
     texts.offer = "Offerta";
     texts.it_param_text_info_offer_number = "Numero offerta";
     texts.param_tooltip_text_info_offer_number = "Inserisci un testo per sostituire quello predefinito";
@@ -3622,6 +3874,10 @@ function setInvoiceTexts(language) {
     texts.param_tooltip_javascript_filename = "Javaskript-Dateiname der 'ID'-Spalte Dokumente-Tabelle eingeben (z.B. Filejs)";
     texts.error1 = "Die Spaltennamen stimmen nicht mit den zu druckenden Texten überein. Prüfen Sie die Rechnungseinstellungen.";
     texts.de_error1_msg = "Die Namen von Text und Spalten stimmen nicht überein.";
+
+    texts.error2_msg = "XML-Spaltennamen";
+    texts.error3_msg = "Summe der Spaltenbreiten";
+    
     texts.offer = "Offerte";
     texts.de_param_text_info_offer_number = "Offerte Nr.";
     texts.param_tooltip_text_info_offer_number = "Text eingeben, um Standardtext zu ersetzen";
@@ -3780,6 +4036,10 @@ function setInvoiceTexts(language) {
     texts.param_tooltip_javascript_filename = "Insérer le nom du fichier JavaScript (.js) de la colonne 'ID' du tableau Documents (p. ex. File.js)";    
     texts.error1 = "Les noms des colonnes ne correspondent pas aux textes à imprimer. Vérifiez les paramètres de la facture.";
     texts.fr_error1_msg = "Le texte et les noms des colonnes ne correspondent pas";
+
+    texts.error2_msg = "Noms XML des colonnes";
+    texts.error3_msg = "Somme largeurs des colonnes";
+
     texts.offer = "Offre";
     texts.fr_param_text_info_offer_number = "Numéro offre";
     texts.param_tooltip_text_info_offer_number = "Insérez un texte pour remplacer le texte par défaut";
@@ -3938,6 +4198,10 @@ function setInvoiceTexts(language) {
     texts.param_tooltip_javascript_filename = "Enter name of the javascript file taken from the 'ID' column of the table 'Documents' (i.e. file.js)";  
     texts.error1 = "Column names do not match with the text to print. Check invoice settings.";
     texts.en_error1_msg = "Text names and columns do not match";
+
+    texts.error2_msg = "XML columns names";
+    texts.error3_msg = "Sum column widths";
+
     texts.offer = "Estimate";
     texts.en_param_text_info_offer_number = "Estimate number";
     texts.param_tooltip_text_info_offer_number = "Enter text to replace the default";
@@ -4062,7 +4326,7 @@ function bananaRequiredVersion(requiredVersion, expmVersion) {
   return true;
 }
 
-function isBananaAdvanced(requiredVersion, expmVersion) {
+function isBananaAdvancedOld(requiredVersion, expmVersion) {
   /*
    * Check version and license type for advanced features.
    *
@@ -4116,5 +4380,22 @@ function isBananaAdvanced(requiredVersion, expmVersion) {
   else { //Case 6
     return false;
   }
+}
+
+function isBananaAdvanced(requiredVersion, expmVersion) {
+  // Starting from version 10.0.7 it is possible to read the property Banana.application.license.isWithinMaxRowLimits 
+  // to check if all application functionalities are permitted
+  // the version Advanced returns isWithinMaxRowLimits always false
+  // other versions return isWithinMaxRowLimits true if the limit of transactions number has not been reached
+
+  if (Banana.compareVersion && Banana.compareVersion(Banana.application.version, "10.0.7") >= 0) {
+    var license = Banana.application.license;
+    if (license.licenseType === "advanced" || license.isWithinMaxFreeLines) {
+      return true;
+    }
+    return false;
+  }
+
+  return isBananaAdvancedOld(requiredVersion, expmVersion);
 }
 
