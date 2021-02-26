@@ -14,7 +14,7 @@
 //
 // @id = ch.banana.ch.invoice.ch10
 // @api = 1.0
-// @pubdate = 2021-02-23
+// @pubdate = 2021-02-26
 // @publisher = Banana.ch SA
 // @description = [CH10] Layout with Swiss QR Code
 // @description.it = [CH10] Layout with Swiss QR Code
@@ -2377,11 +2377,11 @@ function print_details_net_amounts(banDoc, repDocObj, invoiceObj, texts, userPar
   //on normal invoices discounts are entered as items in transactions
   if (invoiceObj.billing_info.total_discount_vat_exclusive) {
     tableRow = repTableObj.addRow();
-    if (invoiceObj.billing_info.discount.description) {
-      tableRow.addCell(invoiceObj.billing_info.discount.description, "padding-left padding-right", columnsNumber-1);
-    } else {
-      tableRow.addCell(texts.discount, "padding-left padding-right", columnsNumber-1);
-    }
+    let discountText = invoiceObj.billing_info.discount.description ?
+      invoiceObj.billing_info.discount.description : texts.discount;
+    if (invoiceObj.billing_info.discount.percent)
+      discountText += " " + invoiceObj.billing_info.discount.percent + "%";
+    tableRow.addCell(discountText, "padding-left padding-right", columnsNumber-1);
     tableRow.addCell(Banana.Converter.toLocaleNumberFormat(invoiceObj.billing_info.total_discount_vat_exclusive, variables.decimals_amounts, true), "right padding-left padding-right", 1);
   }
 
@@ -2587,11 +2587,11 @@ function print_details_gross_amounts(banDoc, repDocObj, invoiceObj, texts, userP
   //on normal invoices discounts are entered as items in transactions
   if (invoiceObj.billing_info.total_discount_vat_inclusive) {
     tableRow = repTableObj.addRow();
-    if (invoiceObj.billing_info.discount.description) {
-      tableRow.addCell(invoiceObj.billing_info.discount.description, "padding-left padding-right", columnsNumber-1);
-    } else {
-      tableRow.addCell(texts.discount, "padding-left padding-right", columnsNumber-1);
-    }
+    let discountText = invoiceObj.billing_info.discount.description ?
+      invoiceObj.billing_info.discount.description : texts.discount;
+    if (invoiceObj.billing_info.discount.percent)
+      discountText += " " + invoiceObj.billing_info.discount.percent + "%";
+    tableRow.addCell(discountText, "padding-left padding-right", columnsNumber-1);
     tableRow.addCell(Banana.Converter.toLocaleNumberFormat(invoiceObj.billing_info.total_discount_vat_inclusive, variables.decimals_amounts, true), "right padding-left padding-right", 1);
   }
 
@@ -3422,7 +3422,7 @@ function replaceVariables(cssText, variables) {
       } 
       else {
         // end variable, any other charcter
-        if (!(varName in variables)) {
+        if (!(varName in variables)) {
           variablesNotFound.push(varName);
           result += varName;
         }
@@ -3441,7 +3441,7 @@ function replaceVariables(cssText, variables) {
 
   if (insideVariable) {
     // end of text, end of variable
-    if (!(varName in variables)) {
+    if (!(varName in variables)) {
       variablesNotFound.push(varName);
       result += varName;
     }
